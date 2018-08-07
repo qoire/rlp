@@ -3,7 +3,7 @@ const Buffer = require('safe-buffer').Buffer;
 const BN = require('bn.js');
 
 const JAVA_LONG_MAX = new BN("9223372036854775807");
-const MASK = new BN("0xFFFFFFFF", 16);
+const MASK = new BN("4294967295");
 const INT_MASK = MASK;
 
 const SHORT_MASK = new BN("0xFFFF", 16);
@@ -28,12 +28,13 @@ class Numerical {
 }
 
 const aionEncodeLong = (bn) => {
-  const top = bn.shln(4).and(MASK);
+  const top = bn.shrn(32).and(MASK);
   const bottom = bn.and(MASK);
 
   const buf = Buffer.alloc(8);
   buf.writeUInt32BE(top.toNumber(), 0);
   buf.writeUInt32BE(bottom.toNumber(), 4);
+  console.log(buf.toString('hex'))
   return buf;
 }
 
