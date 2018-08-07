@@ -3,6 +3,9 @@ const RLP = require('../index.js');
 const BN = require('bn.js');
 const AionLong = RLP.AionLong;
 
+let assertHex = (input, output) =>
+  assert.equal(RLP.encode(input).toString('hex'), output)
+
 describe("Aion flavoured RLP integration", () => {
 
   it("should properly encode from AionLong", () => {
@@ -23,7 +26,7 @@ describe("Aion flavoured RLP integration", () => {
     txArray.push(new AionLong(new BN(1)));
     txArray.push(new AionLong(new BN(1)));
     txArray.push(new BN(1));
-    
+
     const output = RLP.encode(txArray);
     console.log(output.toString('hex'));
     assert.equal(output.toString('hex'), expectedOutput);
@@ -41,9 +44,89 @@ describe("Aion flavoured RLP integration", () => {
     txArray.push(new AionLong(new BN(2000000)));
     txArray.push(new AionLong(new BN("10000000000000")));
     txArray.push(new BN(1));
-    
+
     const output = RLP.encode(txArray);
     console.log(output.toString('hex'));
     assert.equal(output.toString('hex'), expectedOutput);
+  });
+
+  /*
+
+  ported from:
+  https://github.com/aionnetwork/aion/blob/master/modRlp/test/org/aion/rlp/RlpTestData.java
+
+  */
+
+  it("number 0", () => {
+    assertHex(0, "80");
+  });
+
+  it("number 1", () => {
+    assertHex(1, "01");
+  });
+
+  it("number 10", () => {
+    assertHex(10, "0a");
+  });
+
+  it("letter d", () => {
+    assertHex("d", "64");
+  });
+
+  it("string cat", () => {
+    assertHex("cat", "83636174");
+  });
+
+  it("string dog", () => {
+    assertHex("dog", "83646f67");
+  });
+
+  it("string array", () => {
+    assertHex(["cat", "dog"], "c88363617483646f67");
+  });
+
+  it("string array 2", () => {
+    assertHex(["dog", "god", "cat"], "cc83646f6783676f6483636174");
+  });
+
+  it("number 100", () => {
+    assertHex(100, "64");
+  });
+
+  it("number 1000", () => {
+    assertHex(1000, "8203e8");
+  });
+
+  it("BN 01", () => {
+    assertHex(
+      new BN("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+      "a0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    );
+  });
+
+  it("BN 02", () => {
+    assertHex(
+      new BN("115792089237316195423570985008687907853269984665640564039457584007913129639936"),
+      "a1010000000000000000000000000000000000000000000000000000000000000000"
+    );
+  });
+
+  it("numbers and blank array", () => {
+    let input = [1, 2, []]
+    let output = "c30102c0"
+    assertHex(input, output);
+    // console.log(RLP.decode('0x' + output))
+    // assert.deepEqual(RLP.decode('0x' + output), input)
+  });
+
+  it("nested blank arrays", () => {
+    assertHex([[[], []], []], "c4c2c0c0c0");
+  });
+
+  it("strings and array", () => {
+    let input = ["zw", [4], "wz"]
+    let output = "c8827a77c10482777a"
+    assertHex(input, output);
+    // assert.deepEqual(RLP.decode(output), input)
   });
 });
