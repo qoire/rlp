@@ -4,6 +4,9 @@ const BN = require('bn.js');
 
 const JAVA_LONG_MAX = new BN("9223372036854775807");
 const MASK = new BN("0xFFFFFFFF", 16);
+const INT_MASK = MASK;
+
+const SHORT_MASK = new BN("0xFFFF", 16);
 
 /**
  * Added because we need to differentiate between a normal number, which
@@ -15,11 +18,23 @@ class Numerical {
     if (number == null)
       throw "Input cannot be null";
 
-    if (!(number instanceof BN))
-      throw "Input must be an instance of BN";
+    if (!(number instanceof BN) && !(number instanceof Numerical))
+      throw "Input must be an instance of BN or numerical";
 
+    if (number instanceof Numerical)
+      number = number.number;
     this.number = number;
   }
+}
+
+const aionEncodeLong = (bn) => {
+  const top = bn.shln(4).and(MASK);
+  const bottom = bn.and(MASK);
+
+  const buf = Buffer.alloc(8);
+  buf.writeUInt32BE(top.toNumber(), 0);
+  buf.writeUInt32BE(bottom.toNumber(), 4);
+  return buf;
 }
 
 class AionLong extends Numerical {
@@ -35,13 +50,10 @@ class AionLong extends Numerical {
    *                     by the Aion implementation of RLP.
    **/
   getEncoded() {
-    const top = this.number.shln(4).and(MASK);
-    const bottom = this.number.and(MASK);
-
-    const buf = Buffer.alloc(8);
-    buf.writeUInt32BE(top.toNumber(), 0);
-    buf.writeUInt32BE(bottom.toNumber, 4);
-    return buf;
+    if (this.number.and(INT_MASK).cmp(this.number) == 0)
+      return Buffer.from(this.number.toArray());
+    // otherwise this must be a long
+    return aionEncodeLong(this.number);
   }
 }
 
@@ -250,12 +262,6 @@ function intToBuffer (i) {
   return Buffer.from(hex, 'hex')
 }
 
-function longToBuffer(i) {
-  const num = i.number();
-  const buf = Buffer.alloc(8);
-
-}
-
 function toBuffer (v) {
   if (!Buffer.isBuffer(v)) {
     if (typeof v === 'string') {
@@ -265,7 +271,7 @@ function toBuffer (v) {
         v = Buffer.from(v)
       }
     } else if (v instanceof AionLong) {
-      v = longToBuffer(v);
+      v = v.getEncoded();
     } else if (typeof v === 'number') {
       if (!v) {
         v = Buffer.from([])
