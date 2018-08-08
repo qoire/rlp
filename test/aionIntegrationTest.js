@@ -3,7 +3,7 @@ const RLP = require('../index.js');
 const BN = require('bn.js');
 const AionLong = RLP.AionLong;
 
-let assertHex = (input, output) =>
+const assertHex = (input, output) =>
   assert.equal(RLP.encode(input).toString('hex'), output)
 
 describe("Aion flavoured RLP integration", () => {
@@ -12,7 +12,6 @@ describe("Aion flavoured RLP integration", () => {
     const al = new AionLong(new BN(1));
     console.log(al.getEncoded().toString('hex'));
   });
-
 
   it("should match an equivalent Aion encoded transaction", () => {
     const expectedOutput = "f84801a09aabf5b86690ca4cae3fada8c72b280c4b9302dd8dd5e17bd788f241d7e3045c01a0a035872d6af8639ede962dfe7536b0c150b590f3234a922fb7064cd11971b58e80010101";
@@ -28,7 +27,6 @@ describe("Aion flavoured RLP integration", () => {
     txArray.push(new BN(1));
 
     const output = RLP.encode(txArray);
-    console.log(output.toString('hex'));
     assert.equal(output.toString('hex'), expectedOutput);
   });
 
@@ -46,7 +44,6 @@ describe("Aion flavoured RLP integration", () => {
     txArray.push(new BN(1));
 
     const output = RLP.encode(txArray);
-    console.log(output.toString('hex'));
     assert.equal(output.toString('hex'), expectedOutput);
   });
 
@@ -112,8 +109,8 @@ describe("Aion flavoured RLP integration", () => {
   });
 
   it("numbers and blank array", () => {
-    let input = [1, 2, []]
-    let output = "c30102c0"
+    const input = [1, 2, []]
+    const output = "c30102c0"
     assertHex(input, output);
     // console.log(RLP.decode('0x' + output))
     // assert.deepEqual(RLP.decode('0x' + output), input)
@@ -124,9 +121,51 @@ describe("Aion flavoured RLP integration", () => {
   });
 
   it("strings and array", () => {
-    let input = ["zw", [4], "wz"]
-    let output = "c8827a77c10482777a"
+    const input = ["zw", [4], "wz"]
+    const output = "c8827a77c10482777a"
     assertHex(input, output);
     // assert.deepEqual(RLP.decode(output), input)
+  });
+
+  /*
+
+  ported from:
+  https://github.com/aionnetwork/aion/blob/master/modRlp/test/org/aion/rlp/RLPTest.java
+
+  */
+
+  const assertAionLong = val => {
+    const longNum = new AionLong(new BN(val));
+    const encoded = RLP.encode(longNum);
+    const decoded = new BN(RLP.decode(encoded));
+    assert.equal(val, decoded.toString());
+  }
+
+  it('long 01', () => {
+    assertAionLong('314159');
+  });
+
+  it('long 02', () => {
+    assertAionLong(new BN('0xFFFFFFFFF', 'hex').toString());
+  });
+
+  it('long 03', () => {
+    assertAionLong('1');
+  });
+
+  //
+  // some others not present in the other tests
+  //
+
+  it('long 04', () => {
+    assertAionLong('7332199412131513');
+  });
+
+  it('long max', () => {
+    assertAionLong('9223372036854775807');
+  });
+
+  it('long over max throws', () => {
+    assert.throws(() => assertAionLong('9223372036854775808'));
   });
 });
