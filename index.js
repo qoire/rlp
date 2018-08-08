@@ -8,6 +8,14 @@ const INT_MASK = MASK;
 
 const SHORT_MASK = new BN("0xFFFF", 16);
 
+const getCtor = val =>
+  val !== undefined &&
+  val.constructor !== undefined &&
+  val.constructor.name !== undefined &&
+  val.constructor.name
+
+const acceptedNumericals = ['BN', 'Numerical', 'AionLong'];
+
 /**
  * Added because we need to differentiate between a normal number, which
  * presumably is treated similar to a bigint (byte array) and a Long encoding
@@ -15,14 +23,28 @@ const SHORT_MASK = new BN("0xFFFF", 16);
  **/
 class Numerical {
   constructor(number) {
-    if (number == null)
-      throw "Input cannot be null";
+    if (number == null) {
+      throw new Error("Input cannot be null");
+    }
 
-    if (!(number instanceof BN) && !(number instanceof Numerical))
-      throw "Input must be an instance of BN or numerical";
+    const ctor = getCtor(number);
 
-    if (number instanceof Numerical)
+    if (
+      // not a BN
+      (number instanceof BN) === false &&
+      // not a Numerical
+      (number instanceof Numerical) === false &&
+      // the user can pass these objects from another version
+      // and in those cases `instanceof` doesn't work
+      acceptedNumericals.indexOf(ctor) === -1
+    ) {
+      throw new Error("Input must be an instance of BN or numerical");
+    }
+
+    if (number instanceof Numerical) {
       number = number.number;
+    }
+
     this.number = number;
   }
 }
@@ -30,11 +52,9 @@ class Numerical {
 const aionEncodeLong = (bn) => {
   const top = bn.shrn(32).and(MASK);
   const bottom = bn.and(MASK);
-
   const buf = Buffer.alloc(8);
   buf.writeUInt32BE(top.toNumber(), 0);
   buf.writeUInt32BE(bottom.toNumber(), 4);
-  console.log(buf.toString('hex'))
   return buf;
 }
 
@@ -42,8 +62,9 @@ class AionLong extends Numerical {
   constructor(number) {
     super(number);
 
-    if (this.number.cmp(JAVA_LONG_MAX) > 0)
-      throw "Input must not be greater than JAVA_LONG_MAX";
+    if (this.number.cmp(JAVA_LONG_MAX) > 0){
+      throw new Error("Input must not be greater than JAVA_LONG_MAX");
+    }
   }
 
   /**
@@ -51,8 +72,9 @@ class AionLong extends Numerical {
    *                     by the Aion implementation of RLP.
    **/
   getEncoded() {
-    if (this.number.and(INT_MASK).cmp(this.number) == 0)
+    if (this.number.and(INT_MASK).cmp(this.number) == 0) {
       return Buffer.from(this.number.toArray());
+    }
     // otherwise this must be a long
     return aionEncodeLong(this.number);
   }
