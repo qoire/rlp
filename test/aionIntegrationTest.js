@@ -49,21 +49,219 @@ describe("Aion flavoured RLP integration", () => {
 
   /*
 
+  ENCODE TESTS
+
   ported from:
-  https://github.com/aionnetwork/aion/blob/master/modRlp/test/org/aion/rlp/RlpTestData.java
+  https://github.com/aionnetwork/aion/blob/dev/modRlp/test/org/aion/rlp/RLPSpecTest.java
+  https://github.com/aionnetwork/aion/blob/dev/modRlp/test/org/aion/rlp/RLPSpecExtraTest.java
 
   */
 
-  it("number 0", () => {
+  it("testEncodeEmptyString", () => {
+    assertHex("", "80");
+  });
+
+  it("testEncodeShortString1", () => {
+    assertHex("dog", "83646f67");
+  });
+
+  it("testEncodeShortString2", () => {
+    assertHex("Lorem ipsum dolor sit amet, consectetur adipisicing eli", "b74c6f72656d20697073756d20646f6c6f722073697420616d65742c20636f6e7365637465747572206164697069736963696e6720656c69");
+  });
+
+  it("testEncodeLongString1", () => {
+    assertHex("Lorem ipsum dolor sit amet, consectetur adipisicing elit", "b8384c6f72656d20697073756d20646f6c6f722073697420616d65742c20636f6e7365637465747572206164697069736963696e6720656c6974")
+  });
+
+  // testEncodeLongString2
+
+  it("testEncodeZero", () => {
     assertHex(0, "80");
   });
 
-  it("number 1", () => {
+  it("testEncodeByte1", () => {
     assertHex(1, "01");
   });
 
+  it("testEncodeByte2", () => {
+    assertHex(16, "10");
+  });
+
+  it("testEncodeByte3", () => {
+    assertHex(79, "4f");
+  });
+
+  it("testEncodeByte4", () => {
+    assertHex(127, "7f");
+  });
+
+  it("testEncodeShort1", () => {
+    assertHex(128, "8180");
+  });
+
+  it("testEncodeShort2", () => {
+    assertHex(1000, "8203e8");
+  });
+
+  it("testEncodeShort3", () => {
+    assertHex(32767, "827fff");
+  });
+
+  it("testEncodeShort4", () => {
+    assertHex(120, "78");
+  });
+
+  it("testEncodeShort5", () => {
+    assertHex(30303, "82765f");
+  });
+
+  it("testEncodeShort6", () => {
+    assertHex(20202, "824eea");
+  });
+
+  it("testEncodeInt1", () => {
+    assertHex(100000, "830186a0");
+  });
+
+  it("testEncodeInt2", () => {
+    assertHex(32768, "828000");
+  });
+
+  it("testEncodeInt3", () => {
+    assertHex(2147483647, "847fffffff");
+  });
+
+  it("testEncodeLong1", () => {
+    assertHex(2147483648, "8480000000");
+  });
+
+  it("testEncodeLong2", () => {
+    assertHex(4294967295, "84ffffffff");
+  });
+
+  it("testEncodeLong3", () => {
+    assertHex(4294967296, "850100000000");
+  });
+
+  it("testEncodeLong4", () => {
+    assertHex(4295000060, "850100007ffc");
+  });
+
+  it("testEncodeBigInt1", () => {
+    assertHex(
+      new BN("83729609699884896815286331701780722"),
+      "8f102030405060708090a0b0c0d0e0f2"
+    );
+  });
+
+  it("testEncodeBigInt2", () => {
+    assertHex(
+      new BN("105315505618206987246253880190783558935785933862974822347068935681"),
+      "9c0100020003000400050006000700080009000a000b000c000d000e01"
+    );
+  });
+
+  it("testEncodeBigInt3", () => {
+    assertHex(
+      new BN("115792089237316195423570985008687907853269984665640564039457584007913129639936"),
+      "a1010000000000000000000000000000000000000000000000000000000000000000"
+    );
+  });
+
+  it("testEncodeBigInt4", () => {
+    assertHex(
+      new BN("9223372036854775808"),
+      "888000000000000000"
+    );
+  });
+
+  it("testEncodeBigInt5", () => {
+    assertHex(
+      new BN("8069310865484966410942242126479002031594628301973179630276682693877502501814741239079205017247892462230036091241820433244370452243766979557247714691108723"),
+      "b8409a11f84bc53681cc0a2982765fb840d8d60c2580fa795cfc0313efdeba869d2194e79e7cb2b522f782ffa0392cbbab8d1bac301208b137e0de4998334f3bcf73"
+    );
+  });
+
+  it("testEncodeBigInt6", () => {
+    assertHex(
+      new BN("9650128800487972697726795438087510101805200020100629942070155319087371611597658887860952245483247188023303607186148645071838189546969115967896446355306572"),
+      "b840b840d8d60c2580fa795cfc0313efdeba869d2194e79e7cb2b522f782ffa0392cbbab8d1bac301208b137e0de4998334f3bcf73fa117ef213f87417089feaf84c"
+    );
+  });
+
+  // testEncodeEmptyList
+
+  it("testEncodeStringList", () => {
+    assertHex(["dog", "god", "cat"], "cc83646f6783676f6483636174");
+  });
+
+  it("testEncodeMultiList", () => {
+    const input = [ "zw", [4], 1 ];
+    const output = "c6827a77c10401";
+    assertHex(input, output);
+    // assert.deepEqual(RLP.decode(output), input)
+  });
+
+  it("testEncodeMaxShortList", () => {
+    const input = ["asdf", "qwer", "zxcv", "asdf", "qwer", "zxcv", "asdf", "qwer", "zxcv", "asdf", "qwer"];
+    const output = "f784617364668471776572847a78637684617364668471776572847a78637684617364668471776572847a78637684617364668471776572";
+    assertHex(input, output);
+  });
+
+  it("testEncodeLongList1", () => {
+    const input = [
+      ["asdf", "qwer", "zxcv"],
+      ["asdf", "qwer", "zxcv"],
+      ["asdf", "qwer", "zxcv"],
+      ["asdf", "qwer", "zxcv"]
+    ];
+    const output = "f840cf84617364668471776572847a786376cf84617364668471776572847a786376cf84617364668471776572847a786376cf84617364668471776572847a786376";
+    assertHex(input, output);
+  });
+
+  // testEncodeLongList2
+
+  it("testEncodeListOfLists1", () => {
+    assertHex([ [ [], [] ], [] ], "c4c2c0c0c0");
+  });
+
+  it("testEncodeListofLists2", () => {
+    assertHex([ [], [[]], [ [], [[]] ]], "c7c0c1c0c3c0c1c0");
+  });
+
+  it("testEncodeDictList", () => {
+    const input = [
+      ["key1", "val1"],
+      ["key2", "val2"],
+      ["key3", "val3"],
+      ["key4", "val4"],
+    ];
+    const output = "ecca846b6579318476616c31ca846b6579328476616c32ca846b6579338476616c33ca846b6579348476616c34";
+    assertHex(input, output);
+  });
+
+  it("testEncodeByteString1", () => {
+    assertHex("\u0000", "00");
+  });
+
+  it("testEncodeByteString2", () => {
+    assertHex("\u0001", "01");
+  });
+
+  it("testEncodeByteString3", () => {
+    assertHex("\u007F", "7f");
+  });
+
+
+
+  // Other TESTS
+
   it("number 10", () => {
     assertHex(10, "0a");
+  });
+
+  it("number 100", () => {
+    assertHex(100, "64");
   });
 
   it("letter d", () => {
@@ -74,24 +272,8 @@ describe("Aion flavoured RLP integration", () => {
     assertHex("cat", "83636174");
   });
 
-  it("string dog", () => {
-    assertHex("dog", "83646f67");
-  });
-
   it("string array", () => {
     assertHex(["cat", "dog"], "c88363617483646f67");
-  });
-
-  it("string array 2", () => {
-    assertHex(["dog", "god", "cat"], "cc83646f6783676f6483636174");
-  });
-
-  it("number 100", () => {
-    assertHex(100, "64");
-  });
-
-  it("number 1000", () => {
-    assertHex(1000, "8203e8");
   });
 
   it("BN 01", () => {
@@ -101,30 +283,12 @@ describe("Aion flavoured RLP integration", () => {
     );
   });
 
-  it("BN 02", () => {
-    assertHex(
-      new BN("115792089237316195423570985008687907853269984665640564039457584007913129639936"),
-      "a1010000000000000000000000000000000000000000000000000000000000000000"
-    );
-  });
-
   it("numbers and blank array", () => {
     const input = [1, 2, []]
     const output = "c30102c0"
     assertHex(input, output);
     // console.log(RLP.decode('0x' + output))
     // assert.deepEqual(RLP.decode('0x' + output), input)
-  });
-
-  it("nested blank arrays", () => {
-    assertHex([[[], []], []], "c4c2c0c0c0");
-  });
-
-  it("strings and array", () => {
-    const input = ["zw", [4], "wz"]
-    const output = "c8827a77c10482777a"
-    assertHex(input, output);
-    // assert.deepEqual(RLP.decode(output), input)
   });
 
   /*
@@ -159,6 +323,18 @@ describe("Aion flavoured RLP integration", () => {
 
   it('long 04', () => {
     assertAionLong('7332199412131513');
+  });
+
+  it("testEncodeLong5", () => {
+    assertAionLong("72057594037927935");
+  });
+
+  it("testEncodeLong6", () => {
+    assertAionLong("72057594037927936");
+  });
+
+  it("testEncodeLong7", () => {
+    assertAionLong("9223372036854775807");
   });
 
   it('long max', () => {
