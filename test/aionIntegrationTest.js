@@ -10,7 +10,7 @@ describe("Aion flavoured RLP integration", () => {
 
   it("should properly encode from AionLong", () => {
     const al = new AionLong(new BN(1));
-    console.log(al.getEncoded().toString('hex'));
+    console.log(AionLong.aionEncodeLong(al).toString('hex'));
   });
 
   it("should match an equivalent Aion encoded transaction", () => {

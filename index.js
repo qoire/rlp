@@ -5,51 +5,48 @@ const BN = require('bn.js');
 const JAVA_LONG_MAX = new BN("9223372036854775807");
 const MASK = new BN("4294967295");
 const INT_MASK = MASK;
-
 const SHORT_MASK = new BN("0xFFFF", 16);
 
-const getCtor = val =>
-  val !== undefined &&
-  val.constructor !== undefined &&
-  val.constructor.name !== undefined &&
-  val.constructor.name
+//*--- AION LONG ---*/
 
-const acceptedNumericals = ['BN', 'Numerical', 'AionLong'];
+function AionLong (n) {
+  "use strict"
 
-/**
- * Added because we need to differentiate between a normal number, which
- * presumably is treated similar to a bigint (byte array) and a Long encoding
- * which is treated differently
- **/
-class Numerical {
-  constructor(number) {
-    if (number == null) {
-      throw new Error("Input cannot be null");
-    }
+  const _this = this;
 
-    const ctor = getCtor(number);
-
-    if (
-      // not a BN
-      (number instanceof BN) === false &&
-      // not a Numerical
-      (number instanceof Numerical) === false &&
-      // the user can pass these objects from another version
-      // and in those cases `instanceof` doesn't work
-      acceptedNumericals.indexOf(ctor) === -1
-    ) {
-      throw new Error("Input must be an instance of BN or numerical");
-    }
-
-    if (number instanceof Numerical) {
-      number = number.number;
-    }
-
-    this.number = number;
+  if (!(_this instanceof AionLong)) {
+    // allow constructor call without new
+    return new AionLong(n);
   }
+
+  if (n === null || typeof n === "undefined" || !('toArray' in n)) {
+    throw new Error("unsupported input type");
+  }
+
+  if (new BN(n.toArray()).cmp(JAVA_LONG_MAX) > 0) {
+    throw new Error("violated upper bound");
+  }
+
+  this.buf = n.toArray();
 }
 
-const aionEncodeLong = (bn) => {
+AionLong.prototype._aionLong = true;
+
+AionLong.prototype.toArray = function() {
+  return this.buf;
+}
+
+AionLong.isAionLong = (a) => {
+  if (a instanceof AionLong) {
+    return true;
+  }
+
+  return a !== null &&
+  typeof a === 'object' &&
+  a._aionLong === true;
+}
+
+AionLong._aionEncodeLong = (bn) => {
   const top = bn.shrn(32).and(MASK);
   const bottom = bn.and(MASK);
   const buf = Buffer.alloc(8);
@@ -58,26 +55,13 @@ const aionEncodeLong = (bn) => {
   return buf;
 }
 
-class AionLong extends Numerical {
-  constructor(number) {
-    super(number);
-
-    if (this.number.cmp(JAVA_LONG_MAX) > 0){
-      throw new Error("Input must not be greater than JAVA_LONG_MAX");
-    }
+AionLong.aionEncodeLong = (aionLong) => {
+  const bn = new BN(aionLong.buf);
+  if (bn.and(INT_MASK).cmp(bn) == 0) {
+    return Buffer.from(bn.toArray());
   }
-
-  /**
-   * @returns {Buffer} - returns buffer of encoded Long data, according to rules set
-   *                     by the Aion implementation of RLP.
-   **/
-  getEncoded() {
-    if (this.number.and(INT_MASK).cmp(this.number) == 0) {
-      return Buffer.from(this.number.toArray());
-    }
-    // otherwise this must be a long
-    return aionEncodeLong(this.number);
-  }
+  // otherwise this must be a long
+  return AionLong._aionEncodeLong(bn);
 }
 
 exports.AionLong = AionLong;
@@ -293,8 +277,8 @@ function toBuffer (v) {
       } else {
         v = Buffer.from(v)
       }
-    } else if (v instanceof AionLong) {
-      v = v.getEncoded();
+    } else if (AionLong.isAionLong(v)) {
+      v = AionLong.aionEncodeLong(v);
     } else if (typeof v === 'number') {
       if (!v) {
         v = Buffer.from([])
